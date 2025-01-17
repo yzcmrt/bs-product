@@ -4,10 +4,10 @@ import { Metadata } from 'next';
 
 type Props = {
   params: Promise<{ id: string }>;
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-export default async function CoinPage({ params }: Props) {
+export default async function CoinPage({ params, searchParams }: Props) {
   const resolvedParams = await params;
   const { id } = resolvedParams;
   const data = await getCoinDetails(decodeURIComponent(id));
