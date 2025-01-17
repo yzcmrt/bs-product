@@ -7,7 +7,7 @@ type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-export default async function CoinPage({ params, searchParams }: Props) {
+export default async function CoinPage({ params }: Props) {
   const resolvedParams = await params;
   const { id } = resolvedParams;
   const data = await getCoinDetails(decodeURIComponent(id));
