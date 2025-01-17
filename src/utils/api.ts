@@ -51,6 +51,7 @@ interface LiquidPool {
 
 interface Coin {
   coin: string;
+  name: string;
   coinMetadata?: {
     name: string;
     symbol: string;
@@ -62,6 +63,9 @@ interface Coin {
   volume24h?: number | string;
   totalLiquidityUsd?: number | string;
   holderCount?: number | string;
+  price?: number;
+  priceChange24h?: number;
+  totalLiquidity?: number;
 }
 
 interface CoinDetail {
