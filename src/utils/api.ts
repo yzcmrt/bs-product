@@ -216,12 +216,12 @@ export async function getTrendingCoins(): Promise<TrendingCoin[]> {
         symbol: '',
         decimals: 18
       },
-      coinPrice: parseFloat(coin.coinPrice),
-      marketCap: parseFloat(coin.marketCap),
-      totalLiquidityUsd: parseFloat(coin.totalLiquidityUsd),
-      volume24h: parseFloat(coin.volume24h),
-      percentagePriceChange24h: parseFloat(coin.percentagePriceChange24h),
-      holderQualityScore: coin.holderQualityScore ? parseFloat(coin.holderQualityScore) : undefined
+      coinPrice: parseFloat(String(coin.coinPrice ?? 0)),
+      marketCap: parseFloat(String(coin.marketCap ?? 0)),
+      totalLiquidityUsd: parseFloat(String(coin.totalLiquidityUsd ?? 0)),
+      volume24h: parseFloat(String(coin.volume24h ?? 0)),
+      percentagePriceChange24h: parseFloat(String(coin.percentagePriceChange24h ?? 0)),
+      holderQualityScore: coin.holderQualityScore ? parseFloat(String(coin.holderQualityScore)) : undefined
     })) || [];
   } catch (error) {
     console.error('Error fetching trending coins:', error);
