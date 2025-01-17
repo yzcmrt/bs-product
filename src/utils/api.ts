@@ -155,7 +155,7 @@ export async function getHolderQualityScore(coinAddress: string): Promise<Holder
 export async function getCoinDetails(coinId: string): Promise<CoinDetail | null> {
   try {
     const allCoins = await fetchFromApi('/coins/trending');
-    const coinData = allCoins?.find((c: any) => c.coin === coinId);
+    const coinData = allCoins?.find((c: TrendingCoin) => c.coin === coinId);
     
     if (!coinData) return null;
     
@@ -205,7 +205,7 @@ export async function getCoinDetails(coinId: string): Promise<CoinDetail | null>
 export async function getTrendingCoins(): Promise<TrendingCoin[]> {
   try {
     const response = await fetchFromApi('/coins/trending');
-    return response?.map((coin: any) => ({
+    return response?.map((coin: Partial<TrendingCoin>) => ({
       coin: coin.coin,
       coinMetadata: {
         name: coin.coinMetadata.name,
@@ -240,10 +240,8 @@ export async function getMostLiquidPools(limit: number = 10, platforms: string[]
 // Tüm coinleri getiren fonksiyon
 export async function getAllCoins(): Promise<Coin[]> {
   try {
-    // Trending coins endpoint'ini kullanıyoruz çünkü tüm coinleri listeleyen endpoint bu
     const response = await fetchFromApi('/coins/trending');
-    
-    return response?.map((coin: any) => ({
+    return response?.map((coin: Partial<Coin>) => ({
       coin: coin.coin,
       name: coin.coinMetadata?.name || coin.symbol,
       symbol: coin.coinMetadata?.symbol,
