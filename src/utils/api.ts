@@ -206,11 +206,15 @@ export async function getTrendingCoins(): Promise<TrendingCoin[]> {
   try {
     const response = await fetchFromApi('/coins/trending');
     return response?.map((coin: Partial<TrendingCoin>) => ({
-      coin: coin.coin,
-      coinMetadata: {
-        name: coin.coinMetadata.name,
-        symbol: coin.coinMetadata.symbol,
-        decimals: coin.coinMetadata.decimals
+      coin: coin.coin ?? '',
+      coinMetadata: coin.coinMetadata ? {
+        name: coin.coinMetadata.name ?? '',
+        symbol: coin.coinMetadata.symbol ?? '',
+        decimals: coin.coinMetadata.decimals ?? 18
+      } : {
+        name: '',
+        symbol: '',
+        decimals: 18
       },
       coinPrice: parseFloat(coin.coinPrice),
       marketCap: parseFloat(coin.marketCap),
