@@ -51,14 +51,17 @@ interface LiquidPool {
 
 interface Coin {
   coin: string;
-  name: string;
-  symbol: string;
-  price: number;
-  priceChange24h: number;
-  marketCap: number;
-  volume24h: number;
-  totalLiquidity: number;
-  holderCount: number;
+  coinMetadata?: {
+    name: string;
+    symbol: string;
+  };
+  coinPrice?: number | string;
+  symbol?: string;
+  percentagePriceChange24h?: number | string;
+  marketCap?: number | string;
+  volume24h?: number | string;
+  totalLiquidityUsd?: number | string;
+  holderCount?: number | string;
 }
 
 interface CoinDetail {
@@ -246,15 +249,15 @@ export async function getAllCoins(): Promise<Coin[]> {
   try {
     const response = await fetchFromApi('/coins/trending');
     return response?.map((coin: Partial<Coin>) => ({
-      coin: coin.coin,
-      name: coin.coinMetadata?.name || coin.symbol,
-      symbol: coin.coinMetadata?.symbol,
-      price: parseFloat(coin.coinPrice || 0),
-      priceChange24h: parseFloat(coin.percentagePriceChange24h || 0),
-      marketCap: parseFloat(coin.marketCap || 0),
-      volume24h: parseFloat(coin.volume24h || 0),
-      totalLiquidity: parseFloat(coin.totalLiquidityUsd || 0),
-      holderCount: parseInt(coin.holderCount || 0)
+      coin: coin.coin ?? '',
+      name: coin.coinMetadata?.name ?? coin.symbol ?? '',
+      symbol: coin.coinMetadata?.symbol ?? '',
+      price: parseFloat(String(coin.coinPrice ?? 0)),
+      priceChange24h: parseFloat(String(coin.percentagePriceChange24h ?? 0)),
+      marketCap: parseFloat(String(coin.marketCap ?? 0)),
+      volume24h: parseFloat(String(coin.volume24h ?? 0)),
+      totalLiquidity: parseFloat(String(coin.totalLiquidityUsd ?? 0)),
+      holderCount: parseInt(String(coin.holderCount ?? 0))
     })) || [];
   } catch (error) {
     console.error('Error fetching all coins:', error);
