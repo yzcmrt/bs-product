@@ -1,14 +1,15 @@
 import { getCoinDetails } from '@/utils/api';
 import { formatNumber, formatPrice } from '@/utils/format';
+import { Metadata } from 'next';
 
 type Props = {
-  params: {
-    id: string;
-  };
+  params: Promise<{ id: string }>;
+  searchParams: { [key: string]: string | string[] | undefined };
 };
 
-export default async function CoinDetailPage({ params }: Props) {
-  const { id } = await params;
+export default async function CoinPage({ params }: Props) {
+  const resolvedParams = await params;
+  const { id } = resolvedParams;
   const data = await getCoinDetails(decodeURIComponent(id));
   
   if (!data) {
@@ -217,4 +218,14 @@ export default async function CoinDetailPage({ params }: Props) {
       </div>
     </div>
   );
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const resolvedParams = await params;
+  const { id } = resolvedParams;
+  
+  return {
+    title: `${id} Details - BullScan`,
+    description: `Detailed information about ${id} cryptocurrency`,
+  };
 } 
