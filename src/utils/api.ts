@@ -275,7 +275,7 @@ async function searchCoin(query: string): Promise<SearchCoinResult[]> {
 // getAllCoins fonksiyonunu düzeltelim
 export async function getAllCoins(): Promise<Coin[]> {
   try {
-    const trendingResponse = await fetchFromApi('/coins/trending');
+    const trendingResponse = await fetchFromApi('/coins/trending') as Array<Partial<Coin>>;
     
     // Popüler SUI token'larını arayalım
     const searchQueries = ['sui', 'move', 'apt', 'bull', 'bear', 'nft', 'dao'];
@@ -287,22 +287,24 @@ export async function getAllCoins(): Promise<Coin[]> {
     const allCoins = new Map();
     
     // Trending coinleri ekle
-    trendingResponse?.forEach((coin: Partial<Coin>) => {
-      if (coin.coin) {
-        allCoins.set(coin.coin, {
-          coin: coin.coin,
-          name: coin.coinMetadata?.name ?? coin.symbol ?? '',
-          symbol: coin.coinMetadata?.symbol ?? '',
-          price: parseFloat(String(coin.coinPrice ?? 0)),
-          priceChange24h: parseFloat(String(coin.percentagePriceChange24h ?? 0)),
-          marketCap: parseFloat(String(coin.marketCap ?? 0)),
-          volume24h: parseFloat(String(coin.volume24h ?? 0)),
-          totalLiquidity: parseFloat(String(coin.totalLiquidityUsd ?? 0)),
-          holderCount: parseInt(String(coin.holderCount ?? 0)),
-          isTrending: true
-        });
-      }
-    });
+    if (Array.isArray(trendingResponse)) {
+      trendingResponse.forEach((coin) => {
+        if (coin.coin) {
+          allCoins.set(coin.coin, {
+            coin: coin.coin,
+            name: coin.coinMetadata?.name ?? coin.symbol ?? '',
+            symbol: coin.coinMetadata?.symbol ?? '',
+            price: parseFloat(String(coin.coinPrice ?? 0)),
+            priceChange24h: parseFloat(String(coin.percentagePriceChange24h ?? 0)),
+            marketCap: parseFloat(String(coin.marketCap ?? 0)),
+            volume24h: parseFloat(String(coin.volume24h ?? 0)),
+            totalLiquidity: parseFloat(String(coin.totalLiquidityUsd ?? 0)),
+            holderCount: parseInt(String(coin.holderCount ?? 0)),
+            isTrending: true
+          });
+        }
+      });
+    }
 
     // Arama sonuçlarını ekle
     searchResults.flat().forEach((result) => {
