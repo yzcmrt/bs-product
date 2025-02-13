@@ -268,12 +268,11 @@ async function searchCoin(query: string): Promise<SearchCoinResult[]> {
   }
 }
 
-// getAllCoins fonksiyonunu güncelleyelim
+// getAllCoins fonksiyonunu düzeltelim
 export async function getAllCoins(): Promise<Coin[]> {
   try {
     // Önce trending coinleri alalım
     const trendingResponse = await fetchFromApi('/coins/trending');
-    const trendingCoins = new Set(trendingResponse?.map((coin: any) => coin.coin));
     
     // Popüler SUI token'larını arayalım
     const searchQueries = ['sui', 'move', 'apt', 'bull', 'bear', 'nft', 'dao'];
