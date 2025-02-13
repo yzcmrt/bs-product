@@ -66,6 +66,7 @@ interface Coin {
   price?: number;
   priceChange24h?: number;
   totalLiquidity?: number;
+  isTrending: boolean;
 }
 
 interface CoinDetail {
@@ -271,8 +272,8 @@ async function searchCoin(query: string): Promise<SearchCoinResult[]> {
 // getAllCoins fonksiyonunu düzeltelim
 export async function getAllCoins(): Promise<Coin[]> {
   try {
-    // Önce trending coinleri alalım
-    const trendingResponse = await fetchFromApi('/coins/trending') as Partial<Coin>[];
+    const trendingResponse = await fetchFromApi('/coins/trending');
+    const trendingCoins = trendingResponse?.map((coin: Partial<Coin>) => coin.coin) || [];
     
     // Popüler SUI token'larını arayalım
     const searchQueries = ['sui', 'move', 'apt', 'bull', 'bear', 'nft', 'dao'];
@@ -283,26 +284,25 @@ export async function getAllCoins(): Promise<Coin[]> {
     // Tüm sonuçları birleştir ve tekrar edenleri filtrele
     const allCoins = new Map();
     
-    // Önce trending coinleri ekle
-    if (trendingResponse) {
-      trendingResponse.forEach((coin) => {
-        if (coin.coin) {
-          allCoins.set(coin.coin, {
-            coin: coin.coin,
-            name: coin.coinMetadata?.name ?? coin.symbol ?? '',
-            symbol: coin.coinMetadata?.symbol ?? '',
-            price: parseFloat(String(coin.coinPrice ?? 0)),
-            priceChange24h: parseFloat(String(coin.percentagePriceChange24h ?? 0)),
-            marketCap: parseFloat(String(coin.marketCap ?? 0)),
-            volume24h: parseFloat(String(coin.volume24h ?? 0)),
-            totalLiquidity: parseFloat(String(coin.totalLiquidityUsd ?? 0)),
-            holderCount: parseInt(String(coin.holderCount ?? 0))
-          });
-        }
-      });
-    }
+    // Trending coinleri ekle
+    trendingResponse?.forEach((coin: Partial<Coin>) => {
+      if (trendingCoins.includes(coin.coin)) {
+        allCoins.set(coin.coin, {
+          coin: coin.coin ?? '',
+          name: coin.coinMetadata?.name ?? coin.symbol ?? '',
+          symbol: coin.coinMetadata?.symbol ?? '',
+          price: parseFloat(String(coin.coinPrice ?? 0)),
+          priceChange24h: parseFloat(String(coin.percentagePriceChange24h ?? 0)),
+          marketCap: parseFloat(String(coin.marketCap ?? 0)),
+          volume24h: parseFloat(String(coin.volume24h ?? 0)),
+          totalLiquidity: parseFloat(String(coin.totalLiquidityUsd ?? 0)),
+          holderCount: parseInt(String(coin.holderCount ?? 0)),
+          isTrending: true // Trending coin'leri işaretleyelim
+        });
+      }
+    });
 
-    // Sonra arama sonuçlarını ekle
+    // Arama sonuçlarını ekle
     searchResults.flat().forEach((result) => {
       if (!allCoins.has(result.coinType)) {
         allCoins.set(result.coinType, {
@@ -315,12 +315,12 @@ export async function getAllCoins(): Promise<Coin[]> {
           volume24h: 0,
           totalLiquidity: 0,
           holderCount: 0,
-          verified: result.verified
+          verified: result.verified,
+          isTrending: false
         });
       }
     });
 
-    console.log('Total unique coins found:', allCoins.size);
     return Array.from(allCoins.values());
   } catch (error) {
     console.error('Error fetching all coins:', error);
