@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 const API_BASE = 'https://api-ex.insidex.trade';
 const API_KEY = 'insidex_api.lESeS4SIA4WcCR0WPgGTL3Ks';
 
