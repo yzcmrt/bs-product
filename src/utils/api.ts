@@ -276,6 +276,7 @@ async function searchCoin(query: string): Promise<SearchCoinResult[]> {
 export async function getAllCoins(): Promise<Coin[]> {
   try {
     const trendingResponse = await fetchFromApi('/coins/trending') as Array<Partial<Coin>>;
+    const trendingCoins = trendingResponse?.map(coin => coin.coin) || [];
     
     // Popüler SUI token'larını arayalım
     const searchQueries = ['sui', 'move', 'apt', 'bull', 'bear', 'nft', 'dao'];
