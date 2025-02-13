@@ -18,7 +18,7 @@ export default async function CoinsPage({ searchParams }: PageProps) {
   const filteredCoins = searchQuery 
     ? allCoins.filter(coin => 
         coin.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        coin.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (coin.symbol?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
         coin.coin.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : allCoins;
