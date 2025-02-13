@@ -285,7 +285,7 @@ export async function getAllCoins(): Promise<Coin[]> {
     
     // Trending coinleri ekle
     trendingResponse?.forEach((coin: Partial<Coin>) => {
-      if (coin.coin) {  // coin.coin varsa ekle
+      if (coin.coin) {
         allCoins.set(coin.coin, {
           coin: coin.coin,
           name: coin.coinMetadata?.name ?? coin.symbol ?? '',
