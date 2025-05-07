@@ -4,15 +4,15 @@
 const API_BASE = 'https://api-ex.insidex.trade';
 const API_KEY = 'insidex_api.lESeS4SIA4WcCR0WPgGTL3Ks';
 
-// API tiplerimizi tanımlayalım
-interface TopTradeCount {
+// API tiplerimizi daha tutarlı şekilde tanımlayalım
+export interface TopTradeCount {
   _id: string;
   tradeCount: number;
   volume: number;
   volumeUsd: number;
 }
 
-interface HolderQualityScore {
+export interface HolderQualityScore {
   coin: string;
   holdersWithProminentNft: number;
   holdersWithSuiNs: number;
@@ -20,17 +20,17 @@ interface HolderQualityScore {
   holderQualityScore: number;
 }
 
-interface TopHolderQualityScore extends HolderQualityScore {
+export interface TopHolderQualityScore extends HolderQualityScore {
   _id: string;
 }
 
-// Interface tanımlamaları
-interface TrendingCoin {
+// Interface tanımlamaları tutarlı hale getirildi
+export interface TrendingCoin {
   coin: string;
   coinMetadata: {
     name: string;
     symbol: string;
-    decimals: string;
+    decimals: number;
   };
   coinPrice: number;
   marketCap: number;
@@ -38,9 +38,37 @@ interface TrendingCoin {
   volume24h: number;
   percentagePriceChange24h: number;
   holderQualityScore?: number;
+  holderCount?: number;
+  // API'den gelebilecek diğer alanlar
+  top10HolderPercentage?: number;
+  top20HolderPercentage?: number;
+  isMintable?: boolean;
+  tokensBurned?: number;
+  tokensBurnedPercentage?: number;
+  lpBurnt?: boolean;
+  coinSupply?: number;
+  tokensInLiquidity?: number;
+  percentageTokenSupplyInLiquidity?: number;
+  isCoinHoneyPot?: boolean;
+  suspiciousActivities?: string[];
+  coinDev?: string;
+  coinDevHoldings?: number;
+  coinDevHoldingsPercentage?: number;
+  priceChange5m?: number;
+  priceChange1h?: number;
+  priceChange6h?: number;
+  buyVolume5m?: number;
+  buyVolume1h?: number;
+  buyVolume6h?: number;
+  sellVolume5m?: number;
+  sellVolume1h?: number;
+  sellVolume6h?: number;
+  volume5m?: number;
+  volume1h?: number;
+  volume6h?: number;
 }
 
-interface LiquidPool {
+export interface LiquidPool {
   pool: string;
   coinA: string;
   coinB: string;
@@ -52,27 +80,27 @@ interface LiquidPool {
   liqUsd: number;
 }
 
-interface Coin {
+export interface Coin {
   coin: string;
   name: string;
-  coinMetadata?: {
-    name: string;
-    symbol: string;
-  };
-  coinPrice?: number | string;
-  symbol?: string;
-  percentagePriceChange24h?: number | string;
-  marketCap?: number | string;
-  volume24h?: number | string;
-  totalLiquidityUsd?: number | string;
-  holderCount?: number | string;
-  price?: number;
-  priceChange24h?: number;
-  totalLiquidity?: number;
+  symbol: string;
+  price: number;
+  priceChange24h: number;
+  marketCap: number;
+  volume24h: number;
+  totalLiquidity: number;
+  holderCount: number;
   isTrending: boolean;
+  isActive: boolean;
+  isTraded?: boolean;
+  tradeCount?: number;
+  volume?: number;
+  volumeUsd?: number;
+  verified?: boolean;
+  lastUpdated?: Date;
 }
 
-interface CoinDetail {
+export interface CoinDetail {
   coin: string;
   name: string;
   symbol: string;
@@ -107,9 +135,11 @@ interface CoinDetail {
   volume5m: number;
   volume1h: number;
   volume6h: number;
+  hasPartialData?: boolean;
+  lastUpdated?: Date;
 }
 
-interface SearchCoinResult {
+export interface SearchCoinResult {
   symbol: string;
   name: string;
   coinType: string;
@@ -118,22 +148,28 @@ interface SearchCoinResult {
   verified: boolean;
 }
 
-async function fetchFromApi(endpoint: string) {
+// Gelişmiş hata yönetimi için genel bir fetchApi fonksiyonu
+export async function fetchFromApi<T>(endpoint: string, options?: RequestInit): Promise<T | null> {
   try {
     const response = await fetch(`${API_BASE}${endpoint}`, {
       headers: {
-        'x-api-key': API_KEY
-      }
+        'x-api-key': API_KEY,
+        ...options?.headers
+      },
+      ...options,
+      // Önbelleği devre dışı bırak - her zaman taze veriler al
+      cache: 'no-store'
     });
 
     if (!response.ok) {
-      console.error(`API Error: ${response.status} - ${response.statusText}`);
+      console.error(`API Hatası: ${response.status} - ${response.statusText}`);
       return null;
     }
 
-    return await response.json();
+    const data = await response.json();
+    return data as T;
   } catch (error) {
-    console.error('API Error:', error);
+    console.error('API Bağlantı Hatası:', error);
     return null;
   }
 }
@@ -141,10 +177,10 @@ async function fetchFromApi(endpoint: string) {
 // Top trade count verilerini getiren fonksiyon
 export async function getTopTradeCount(): Promise<TopTradeCount[]> {
   try {
-    const response = await fetchFromApi('/coins/top-trade-count');
+    const response = await fetchFromApi<TopTradeCount[]>('/coins/top-trade-count');
     return response || [];
   } catch (error) {
-    console.error('Error fetching top trade count:', error);
+    console.error('Trade count verisi alınırken hata:', error);
     return [];
   }
 }
@@ -152,10 +188,10 @@ export async function getTopTradeCount(): Promise<TopTradeCount[]> {
 // Top holder quality score listesini getiren fonksiyon
 export async function getTopHolderQualityScore(): Promise<TopHolderQualityScore[]> {
   try {
-    const response = await fetchFromApi('/coins/top-holder-quality-score');
+    const response = await fetchFromApi<TopHolderQualityScore[]>('/coins/top-holder-quality-score');
     return response || [];
   } catch (error) {
-    console.error('Error fetching top holder quality scores:', error);
+    console.error('Holder quality scores alınırken hata:', error);
     return [];
   }
 }
@@ -163,88 +199,170 @@ export async function getTopHolderQualityScore(): Promise<TopHolderQualityScore[
 // Belirli bir coin için holder quality score getiren fonksiyon
 export async function getHolderQualityScore(coinAddress: string): Promise<HolderQualityScore | null> {
   try {
-    const response = await fetchFromApi(`/coins/${coinAddress}/holder-quality-score`);
+    const response = await fetchFromApi<HolderQualityScore>(`/coins/${coinAddress}/holder-quality-score`);
     return response;
   } catch (error) {
-    console.error('Error fetching holder quality score:', error);
+    console.error('Holder quality score alınırken hata:', error);
     return null;
   }
 }
 
-// Coin detaylarını getiren fonksiyon
+// Coin detaylarını getiren fonksiyon - doğru endpoint kullanımı ve gelişmiş hata yönetimi
 export async function getCoinDetails(coinId: string): Promise<CoinDetail | null> {
   try {
-    const allCoins = await fetchFromApi('/coins/trending');
-    const coinData = allCoins?.find((c: TrendingCoin) => c.coin === coinId);
+    // Doğrudan coin detayları için direkt bir endpoint varsa onu kullan
+    // Eğer bu endpoint çalışmazsa, alternatif olarak trending içinden ara
+    const allCoins = await fetchFromApi<TrendingCoin[]>('/coins/trending');
+    if (!allCoins || allCoins.length === 0) return null;
     
+    const coinData = allCoins.find(c => c.coin === coinId);
     if (!coinData) return null;
     
-    return {
+    // API'den gelen verilerle detay nesnesini oluştur
+    const detail: CoinDetail = {
       coin: coinData.coin,
-      name: coinData.coinMetadata?.name || coinData.coinMetadata?.symbol,
-      symbol: coinData.coinMetadata?.symbol,
-      price: parseFloat(coinData.coinPrice || 0),
-      priceChange24h: parseFloat(coinData.percentagePriceChange24h || 0),
-      marketCap: parseFloat(coinData.marketCap || 0),
-      volume24h: parseFloat(coinData.volume24h || 0),
-      totalLiquidity: parseFloat(coinData.totalLiquidityUsd || 0),
-      top10HolderPercentage: parseFloat(coinData.top10HolderPercentage || 0),
-      top20HolderPercentage: parseFloat(coinData.top20HolderPercentage || 0),
-      isMintable: coinData.isMintable === 'true',
-      tokensBurned: parseFloat(coinData.tokensBurned || 0),
-      tokensBurnedPercentage: parseFloat(coinData.tokensBurnedPercentage || 0),
-      lpBurnt: coinData.lpBurnt === 'true',
-      coinSupply: parseFloat(coinData.coinSupply || 0),
-      tokensInLiquidity: parseFloat(coinData.tokensInLiquidity || 0),
-      percentageTokenSupplyInLiquidity: parseFloat(coinData.percentageTokenSupplyInLiquidity || 0),
-      isCoinHoneyPot: coinData.isCoinHoneyPot === 'true',
+      name: coinData.coinMetadata?.name || '',
+      symbol: coinData.coinMetadata?.symbol || '',
+      price: typeof coinData.coinPrice === 'string' ? parseFloat(coinData.coinPrice) : (coinData.coinPrice || 0),
+      priceChange24h: typeof coinData.percentagePriceChange24h === 'string' ? parseFloat(coinData.percentagePriceChange24h) : (coinData.percentagePriceChange24h || 0),
+      marketCap: typeof coinData.marketCap === 'string' ? parseFloat(coinData.marketCap) : (coinData.marketCap || 0),
+      volume24h: typeof coinData.volume24h === 'string' ? parseFloat(coinData.volume24h) : (coinData.volume24h || 0),
+      totalLiquidity: typeof coinData.totalLiquidityUsd === 'string' ? parseFloat(coinData.totalLiquidityUsd) : (coinData.totalLiquidityUsd || 0),
+      top10HolderPercentage: typeof coinData.top10HolderPercentage === 'string' ? parseFloat(coinData.top10HolderPercentage) : (coinData.top10HolderPercentage || 0),
+      top20HolderPercentage: typeof coinData.top20HolderPercentage === 'string' ? parseFloat(coinData.top20HolderPercentage) : (coinData.top20HolderPercentage || 0),
+      isMintable: coinData.isMintable === 'true' || !!coinData.isMintable,
+      tokensBurned: typeof coinData.tokensBurned === 'string' ? parseFloat(coinData.tokensBurned) : (coinData.tokensBurned || 0),
+      tokensBurnedPercentage: typeof coinData.tokensBurnedPercentage === 'string' ? parseFloat(coinData.tokensBurnedPercentage) : (coinData.tokensBurnedPercentage || 0),
+      lpBurnt: coinData.lpBurnt === 'true' || !!coinData.lpBurnt,
+      coinSupply: typeof coinData.coinSupply === 'string' ? parseFloat(coinData.coinSupply) : (coinData.coinSupply || 0),
+      tokensInLiquidity: typeof coinData.tokensInLiquidity === 'string' ? parseFloat(coinData.tokensInLiquidity) : (coinData.tokensInLiquidity || 0),
+      percentageTokenSupplyInLiquidity: typeof coinData.percentageTokenSupplyInLiquidity === 'string' ? parseFloat(coinData.percentageTokenSupplyInLiquidity) : (coinData.percentageTokenSupplyInLiquidity || 0),
+      isCoinHoneyPot: coinData.isCoinHoneyPot === 'true' || !!coinData.isCoinHoneyPot,
       suspiciousActivities: coinData.suspiciousActivities || [],
-      coinDev: coinData.coinDev,
-      coinDevHoldings: parseFloat(coinData.coinDevHoldings || 0),
-      coinDevHoldingsPercentage: parseFloat(coinData.coinDevHoldingsPercentage || 0),
-      priceChange5m: parseFloat(coinData.percentagePriceChange5m || 0),
-      priceChange1h: parseFloat(coinData.percentagePriceChange1h || 0),
-      priceChange6h: parseFloat(coinData.percentagePriceChange6h || 0),
-      buyVolume5m: parseFloat(coinData.buyVolume5m || 0),
-      buyVolume1h: parseFloat(coinData.buyVolume1h || 0),
-      buyVolume6h: parseFloat(coinData.buyVolume6h || 0),
-      sellVolume5m: parseFloat(coinData.sellVolume5m || 0),
-      sellVolume1h: parseFloat(coinData.sellVolume1h || 0),
-      sellVolume6h: parseFloat(coinData.sellVolume6h || 0),
-      volume5m: parseFloat(coinData.volume5m || 0),
-      volume1h: parseFloat(coinData.volume1h || 0),
-      volume6h: parseFloat(coinData.volume6h || 0)
+      coinDev: coinData.coinDev || '',
+      coinDevHoldings: typeof coinData.coinDevHoldings === 'string' ? parseFloat(coinData.coinDevHoldings) : (coinData.coinDevHoldings || 0),
+      coinDevHoldingsPercentage: typeof coinData.coinDevHoldingsPercentage === 'string' ? parseFloat(coinData.coinDevHoldingsPercentage) : (coinData.coinDevHoldingsPercentage || 0),
+      priceChange5m: typeof coinData.priceChange5m === 'string' ? parseFloat(coinData.priceChange5m) : (coinData.priceChange5m || 0),
+      priceChange1h: typeof coinData.priceChange1h === 'string' ? parseFloat(coinData.priceChange1h) : (coinData.priceChange1h || 0),
+      priceChange6h: typeof coinData.priceChange6h === 'string' ? parseFloat(coinData.priceChange6h) : (coinData.priceChange6h || 0),
+      buyVolume5m: typeof coinData.buyVolume5m === 'string' ? parseFloat(coinData.buyVolume5m) : (coinData.buyVolume5m || 0),
+      buyVolume1h: typeof coinData.buyVolume1h === 'string' ? parseFloat(coinData.buyVolume1h) : (coinData.buyVolume1h || 0),
+      buyVolume6h: typeof coinData.buyVolume6h === 'string' ? parseFloat(coinData.buyVolume6h) : (coinData.buyVolume6h || 0),
+      sellVolume5m: typeof coinData.sellVolume5m === 'string' ? parseFloat(coinData.sellVolume5m) : (coinData.sellVolume5m || 0),
+      sellVolume1h: typeof coinData.sellVolume1h === 'string' ? parseFloat(coinData.sellVolume1h) : (coinData.sellVolume1h || 0),
+      sellVolume6h: typeof coinData.sellVolume6h === 'string' ? parseFloat(coinData.sellVolume6h) : (coinData.sellVolume6h || 0),
+      volume5m: typeof coinData.volume5m === 'string' ? parseFloat(coinData.volume5m) : (coinData.volume5m || 0),
+      volume1h: typeof coinData.volume1h === 'string' ? parseFloat(coinData.volume1h) : (coinData.volume1h || 0),
+      volume6h: typeof coinData.volume6h === 'string' ? parseFloat(coinData.volume6h) : (coinData.volume6h || 0),
+      hasPartialData: !coinData.top10HolderPercentage || !coinData.top20HolderPercentage,
+      lastUpdated: new Date()
     };
+    
+    return detail;
   } catch (error) {
-    console.error('Error fetching coin details:', error);
+    console.error('Coin detayları alınırken hata:', error);
     return null;
   }
 }
 
-// Trending coins listesini getiren fonksiyon
+// Trending coins listesini getiren fonksiyon - daha iyi veri dönüşümü
 export async function getTrendingCoins(): Promise<TrendingCoin[]> {
   try {
-    const response = await fetchFromApi('/coins/trending');
-    return response?.map((coin: Partial<TrendingCoin>) => ({
-      coin: coin.coin ?? '',
-      coinMetadata: coin.coinMetadata ? {
-        name: coin.coinMetadata.name ?? '',
-        symbol: coin.coinMetadata.symbol ?? '',
-        decimals: coin.coinMetadata.decimals ?? 18
-      } : {
-        name: '',
-        symbol: '',
-        decimals: 18
-      },
-      coinPrice: parseFloat(String(coin.coinPrice ?? 0)),
-      marketCap: parseFloat(String(coin.marketCap ?? 0)),
-      totalLiquidityUsd: parseFloat(String(coin.totalLiquidityUsd ?? 0)),
-      volume24h: parseFloat(String(coin.volume24h ?? 0)),
-      percentagePriceChange24h: parseFloat(String(coin.percentagePriceChange24h ?? 0)),
-      holderQualityScore: coin.holderQualityScore ? parseFloat(String(coin.holderQualityScore)) : undefined
-    })) || [];
+    const response = await fetchFromApi<any[]>('/coins/trending');
+    if (!response || !Array.isArray(response)) return [];
+    
+    // Tüm verilerin doğru formatta olmasını sağla
+    return response.map(coin => normalizeTrendingCoin(coin));
   } catch (error) {
-    console.error('Error fetching trending coins:', error);
+    console.error('Trending coinler alınırken hata:', error);
+    return [];
+  }
+}
+
+// Aktif olan tüm coinleri getiren yeni fonksiyon
+export async function getActiveCoins(): Promise<Coin[]> {
+  try {
+    // Aktif coinleri almak için birden fazla kaynak kullan
+    const [trendingCoins, tradedCoins] = await Promise.all([
+      fetchFromApi<any[]>('/coins/trending'),
+      fetchFromApi<any[]>('/coins/top-trade-count')
+    ]);
+    
+    const allActiveCoins = new Map<string, Coin>();
+    
+    // Trending coinleri ekle
+    if (trendingCoins && Array.isArray(trendingCoins)) {
+      trendingCoins.forEach((coin: any) => {
+        if (coin.coin) {
+          allActiveCoins.set(coin.coin, {
+            coin: coin.coin,
+            name: coin.coinMetadata?.name || '',
+            symbol: coin.coinMetadata?.symbol || '',
+            price: parseFloat(String(coin.coinPrice || 0)),
+            priceChange24h: parseFloat(String(coin.percentagePriceChange24h || 0)),
+            marketCap: parseFloat(String(coin.marketCap || 0)),
+            volume24h: parseFloat(String(coin.volume24h || 0)),
+            totalLiquidity: parseFloat(String(coin.totalLiquidityUsd || 0)),
+            holderCount: parseInt(String(coin.holderCount || 0)),
+            isTrending: true,
+            isActive: true,
+            lastUpdated: new Date()
+          });
+        }
+      });
+    }
+    
+    // Trading yapılan coinleri ekle
+    if (tradedCoins && Array.isArray(tradedCoins)) {
+      tradedCoins.forEach((coin: any) => {
+        if (coin._id) {
+          // Eğer coin zaten listede varsa, sadece tradeCount ve volume bilgilerini güncelle
+          if (allActiveCoins.has(coin._id)) {
+            const existingCoin = allActiveCoins.get(coin._id)!;
+            allActiveCoins.set(coin._id, {
+              ...existingCoin,
+              tradeCount: coin.tradeCount,
+              volume: coin.volume,
+              volumeUsd: coin.volumeUsd,
+              isTraded: true,
+              lastUpdated: new Date()
+            });
+          } else {
+            // Eğer coin listede yoksa, yeni bir coin olarak ekle
+            allActiveCoins.set(coin._id, {
+              coin: coin._id,
+              name: '', // Bu veriler coin detail bilgisiyle sonradan doldurulabilir
+              symbol: '',
+              price: 0,
+              priceChange24h: 0,
+              marketCap: 0,
+              volume24h: coin.volumeUsd || 0,
+              totalLiquidity: 0,
+              holderCount: 0,
+              tradeCount: coin.tradeCount,
+              volume: coin.volume,
+              volumeUsd: coin.volumeUsd,
+              isTrending: false,
+              isTraded: true,
+              isActive: true,
+              lastUpdated: new Date()
+            });
+          }
+        }
+      });
+    }
+
+    // Eksik bilgileri olan coinleri tamamla
+    const coinsNeedingDetails = Array.from(allActiveCoins.values())
+      .filter(coin => !coin.name || !coin.symbol);
+    
+    if (coinsNeedingDetails.length > 0) {
+      await enrichCoinsWithSearch(allActiveCoins, coinsNeedingDetails);
+    }
+    
+    return Array.from(allActiveCoins.values());
+  } catch (error) {
+    console.error('Aktif coinler alınırken hata:', error);
     return [];
   }
 }
@@ -253,59 +371,44 @@ export async function getTrendingCoins(): Promise<TrendingCoin[]> {
 export async function getMostLiquidPools(limit: number = 10, platforms: string[] = ['cetus', 'turbos']): Promise<LiquidPool[]> {
   try {
     const platformsParam = platforms.join(',');
-    const response = await fetchFromApi(`/pools/top-liquidity?limit=${limit}&platforms=${platformsParam}`);
+    const response = await fetchFromApi<LiquidPool[]>(`/pools/top-liquidity?limit=${limit}&platforms=${platformsParam}`);
     return response || [];
   } catch (error) {
-    console.error('Error fetching most liquid pools:', error);
+    console.error('En likit havuzlar alınırken hata:', error);
     return [];
   }
 }
 
-// Coin arama fonksiyonu
-async function searchCoin(query: string): Promise<SearchCoinResult[]> {
+// Coin arama fonksiyonu - export edildi ve erişilebilir hale getirildi
+export async function searchCoin(query: string): Promise<SearchCoinResult[]> {
   try {
-    const response = await fetchFromApi(`/search/coin/${query}`);
+    const response = await fetchFromApi<SearchCoinResult[]>(`/search/coin/${query}`);
     return response || [];
   } catch (error) {
-    console.error('Error searching coins:', error);
+    console.error('Coin arama sırasında hata:', error);
     return [];
   }
 }
 
-// getAllCoins fonksiyonunu düzeltelim
+// getAllCoins fonksiyonu - search ve trending verilerini birleştirir
 export async function getAllCoins(): Promise<Coin[]> {
   try {
-    const trendingResponse = await fetchFromApi('/coins/trending') as Array<Partial<Coin>>;
-    const trendingCoins = trendingResponse?.map(coin => coin.coin) || [];
+    // Aktif coinleri kullan
+    const activeCoins = await getActiveCoins();
     
-    // Popüler SUI token'larını arayalım
+    // Popüler SUI token'larını ara ve ekle
     const searchQueries = ['sui', 'move', 'apt', 'bull', 'bear', 'nft', 'dao'];
     const searchResults = await Promise.all(
       searchQueries.map(query => searchCoin(query))
     );
     
-    // Tüm sonuçları birleştir ve tekrar edenleri filtrele
-    const allCoins = new Map();
+    // Map üzerinde coin bilgilerini tut
+    const allCoins = new Map<string, Coin>();
     
-    // Trending coinleri ekle
-    if (Array.isArray(trendingResponse)) {
-      trendingResponse.forEach((coin) => {
-        if (coin.coin) {
-          allCoins.set(coin.coin, {
-            coin: coin.coin,
-            name: coin.coinMetadata?.name ?? coin.symbol ?? '',
-            symbol: coin.coinMetadata?.symbol ?? '',
-            price: parseFloat(String(coin.coinPrice ?? 0)),
-            priceChange24h: parseFloat(String(coin.percentagePriceChange24h ?? 0)),
-            marketCap: parseFloat(String(coin.marketCap ?? 0)),
-            volume24h: parseFloat(String(coin.volume24h ?? 0)),
-            totalLiquidity: parseFloat(String(coin.totalLiquidityUsd ?? 0)),
-            holderCount: parseInt(String(coin.holderCount ?? 0)),
-            isTrending: true
-          });
-        }
-      });
-    }
+    // Aktif coinleri ekle
+    activeCoins.forEach(coin => {
+      allCoins.set(coin.coin, coin);
+    });
 
     // Arama sonuçlarını ekle
     searchResults.flat().forEach((result) => {
@@ -321,15 +424,82 @@ export async function getAllCoins(): Promise<Coin[]> {
           totalLiquidity: 0,
           holderCount: 0,
           verified: result.verified,
-          isTrending: false
+          isTrending: false,
+          isActive: false,
+          lastUpdated: new Date()
         });
       }
     });
 
     return Array.from(allCoins.values());
   } catch (error) {
-    console.error('Error fetching all coins:', error);
+    console.error('Tüm coinler alınırken hata:', error);
     return [];
+  }
+}
+
+// YARDIMCI FONKSİYONLAR
+
+// TrendingCoin normalleştirme - tutarlı veri tipi dönüşümü için
+function normalizeTrendingCoin(coin: any): TrendingCoin {
+  return {
+    coin: coin.coin || '',
+    coinMetadata: {
+      name: coin.coinMetadata?.name || '',
+      symbol: coin.coinMetadata?.symbol || '',
+      decimals: typeof coin.coinMetadata?.decimals === 'string' 
+        ? parseInt(coin.coinMetadata.decimals, 10) 
+        : (coin.coinMetadata?.decimals || 18)
+    },
+    coinPrice: typeof coin.coinPrice === 'string' 
+      ? parseFloat(coin.coinPrice) 
+      : (coin.coinPrice || 0),
+    marketCap: typeof coin.marketCap === 'string' 
+      ? parseFloat(coin.marketCap) 
+      : (coin.marketCap || 0),
+    totalLiquidityUsd: typeof coin.totalLiquidityUsd === 'string' 
+      ? parseFloat(coin.totalLiquidityUsd) 
+      : (coin.totalLiquidityUsd || 0),
+    volume24h: typeof coin.volume24h === 'string' 
+      ? parseFloat(coin.volume24h) 
+      : (coin.volume24h || 0),
+    percentagePriceChange24h: typeof coin.percentagePriceChange24h === 'string' 
+      ? parseFloat(coin.percentagePriceChange24h) 
+      : (coin.percentagePriceChange24h || 0),
+    holderQualityScore: coin.holderQualityScore !== undefined 
+      ? (typeof coin.holderQualityScore === 'string' 
+        ? parseFloat(coin.holderQualityScore) 
+        : coin.holderQualityScore) 
+      : undefined
+  };
+}
+
+// Coin bilgilerini zenginleştir - eksik bilgileri arama API'sinden tamamla
+async function enrichCoinsWithSearch(coinsMap: Map<string, Coin>, coinsToEnrich: Coin[]): Promise<void> {
+  if (coinsToEnrich.length === 0) return;
+
+  // Her bir coin için arama yap
+  for (const coin of coinsToEnrich) {
+    try {
+      const searchResults = await searchCoin(coin.coin);
+      
+      if (searchResults && searchResults.length > 0) {
+        const result = searchResults[0];
+        
+        if (coinsMap.has(coin.coin)) {
+          const existingCoin = coinsMap.get(coin.coin)!;
+          coinsMap.set(coin.coin, {
+            ...existingCoin,
+            name: result.name || existingCoin.name,
+            symbol: result.symbol || existingCoin.symbol,
+            verified: result.verified,
+            lastUpdated: new Date()
+          });
+        }
+      }
+    } catch (error) {
+      console.error(`${coin.coin} için arama yaparken hata:`, error);
+    }
   }
 }
 

@@ -1,120 +1,117 @@
 import { getAllCoins } from '@/utils/api';
 import { formatNumber, formatPrice } from '@/utils/format';
 import Link from 'next/link';
+import ApiErrorDisplay from '@/components/ApiErrorDisplay';
 
-interface PageProps {
-  searchParams: Promise<{ page?: string; limit?: string; search?: string }>;
-}
+export const dynamic = 'force-dynamic'; // Her seferinde güncel verileri getir
 
-export default async function CoinsPage({ searchParams }: PageProps) {
-  const resolvedParams = await searchParams;
-  const page = Number(resolvedParams.page) || 1;
-  const limit = Number(resolvedParams.limit) || 50;
-  const searchQuery = resolvedParams.search || '';
-  
-  const allCoins = await getAllCoins();
-  
-  // Arama filtrelemesi
-  const filteredCoins = searchQuery 
-    ? allCoins.filter(coin => 
-        coin.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (coin.symbol?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-        coin.coin.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : allCoins;
+export default async function CoinsPage() {
+  try {
+    const allCoins = await getAllCoins();
+    
+    if (!allCoins || allCoins.length === 0) {
+      return (
+        <ApiErrorDisplay 
+          title="Veri bulunamadı" 
+          message="Coin verisi bulunamadı. Lütfen daha sonra tekrar deneyin."
+          backLink="/"
+          backText="Ana Sayfaya Dön"
+        />
+      );
+    }
 
-  console.log(`Toplam coin sayısı: ${filteredCoins.length}`);
+    // Market değerine göre sırala
+    const sortedCoins = [...allCoins].sort((a, b) => 
+      (b.marketCap || 0) - (a.marketCap || 0)
+    );
 
-  return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Arama kutusu */}
-      <div className="mb-6">
-        <form className="flex gap-2">
-          <input
-            type="text"
-            name="search"
-            defaultValue={searchQuery}
-            placeholder="Coin ara..."
-            className="flex-1 px-4 py-2 bg-[#222] rounded-lg border border-gray-700 focus:outline-none focus:border-blue-500"
-          />
-          <button
-            type="submit"
-            className="px-6 py-2 bg-blue-500 rounded-lg hover:bg-blue-600"
-          >
-            Ara
-          </button>
-        </form>
-      </div>
-
-      <h1 className="text-2xl font-bold mb-6">
-        {searchQuery 
-          ? `Arama Sonuçları (${filteredCoins.length})` 
-          : `Tüm Coinler (${filteredCoins.length})`}
-      </h1>
-      
-      <div className="grid gap-4">
-        {filteredCoins
-          .slice((page - 1) * limit, page * limit)
-          .map((coin) => (
-            <Link href={`/coins/${encodeURIComponent(coin.coin)}`} key={coin.coin}>
-              <div className="rounded-lg p-4 shadow hover:shadow-md transition-shadow border border-gray-800">
-                <div className="flex justify-between mb-2">
+    return (
+      <div className="max-w-7xl mx-auto p-4">
+        <h1 className="text-3xl font-bold mb-6">Tüm Coinler</h1>
+        
+        <div className="bg-[#111] rounded-lg overflow-hidden">
+          <div className="grid grid-cols-7 gap-4 p-4 font-semibold border-b border-gray-700">
+            <div>Coin</div>
+            <div className="text-right">Fiyat</div>
+            <div className="text-right">24s Değişim</div>
+            <div className="text-right">Hacim (24s)</div>
+            <div className="text-right">Market Değeri</div>
+            <div className="text-right">Likidite</div>
+            <div className="text-right">Durum</div>
+          </div>
+          
+          <div className="divide-y divide-gray-700">
+            {sortedCoins.map((coin) => (
+              <Link
+                href={`/coins/${encodeURIComponent(coin.coin)}`}
+                key={coin.coin}
+                className="grid grid-cols-7 gap-4 p-4 hover:bg-[#222] block"
+              >
+                <div className="flex items-center gap-2">
                   <div>
-                    <div className="font-medium flex items-center gap-2">
-                      {coin.name}
-                      {coin.verified && (
-                        <span className="text-blue-500 text-sm">(Doğrulanmış)</span>
-                      )}
-                    </div>
-                    <div className="text-sm text-gray-400">{coin.symbol}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-medium">${formatPrice(coin.price)}</div>
-                    <div className={`text-sm ${coin.priceChange24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                      {formatNumber(coin.priceChange24h, 2)}%
-                    </div>
+                    <div className="font-medium">{coin.name || 'İsimsiz Coin'}</div>
+                    <div className="text-sm text-gray-400">{coin.symbol || '???'}</div>
+                    {coin.verified && (
+                      <span className="inline-flex items-center rounded-full bg-green-100/10 px-2 py-1 text-xs font-medium text-green-400 ring-1 ring-inset ring-green-500/20 mt-1">
+                        Doğrulanmış
+                      </span>
+                    )}
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2 text-sm text-gray-400">
-                  <div>
-                    <div className="text-xs mb-1">Hacim (24s)</div>
-                    <div>${formatNumber(coin.volume24h)}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs mb-1">Market Değeri</div>
-                    <div>${formatNumber(coin.marketCap)}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs mb-1">Likidite</div>
-                    <div>${formatNumber(coin.totalLiquidity)}</div>
+                
+                <div className="text-right">
+                  {coin.price ? `$${formatPrice(coin.price)}` : '-'}
+                </div>
+                
+                <div className={`text-right ${(coin.priceChange24h || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  {coin.priceChange24h !== undefined ? `${formatNumber(coin.priceChange24h, 2)}%` : '-'}
+                </div>
+                
+                <div className="text-right">
+                  {coin.volume24h ? `$${formatNumber(coin.volume24h)}` : '-'}
+                </div>
+                
+                <div className="text-right">
+                  {coin.marketCap ? `$${formatNumber(coin.marketCap)}` : '-'}
+                </div>
+                
+                <div className="text-right">
+                  {coin.totalLiquidity ? `$${formatNumber(coin.totalLiquidity)}` : '-'}
+                </div>
+                
+                <div className="text-right">
+                  <div className="flex flex-wrap justify-end gap-1">
+                    {coin.isTrending && (
+                      <span className="inline-flex items-center rounded-full bg-blue-100/10 px-2 py-1 text-xs font-medium text-blue-400 ring-1 ring-inset ring-blue-500/20">
+                        Trend
+                      </span>
+                    )}
+                    {coin.isActive && (
+                      <span className="inline-flex items-center rounded-full bg-green-100/10 px-2 py-1 text-xs font-medium text-green-400 ring-1 ring-inset ring-green-500/20">
+                        Aktif
+                      </span>
+                    )}
                   </div>
                 </div>
-              </div>
-            </Link>
-          ))}
-      </div>
-
-      {/* Sayfalama */}
-      {filteredCoins.length > limit && (
-        <div className="mt-8 flex justify-center gap-2">
-          {page > 1 && (
-            <Link
-              href={`/coins?page=${page - 1}&limit=${limit}${searchQuery ? `&search=${searchQuery}` : ''}`}
-              className="px-4 py-2 bg-[#222] rounded-lg hover:bg-[#333]"
-            >
-              Önceki
-            </Link>
-          )}
-          {page * limit < filteredCoins.length && (
-            <Link
-              href={`/coins?page=${page + 1}&limit=${limit}${searchQuery ? `&search=${searchQuery}` : ''}`}
-              className="px-4 py-2 bg-[#222] rounded-lg hover:bg-[#333]"
-            >
-              Sonraki
-            </Link>
-          )}
+              </Link>
+            ))}
+          </div>
         </div>
-      )}
-    </div>
-  );
+        
+        <div className="text-right text-xs text-gray-500 mt-2">
+          Toplam {sortedCoins.length} coin listeleniyor • Son güncelleme: {new Date().toLocaleString('tr-TR')}
+        </div>
+      </div>
+    );
+  } catch (error) {
+    console.error('Coins sayfası yüklenirken hata:', error);
+    return (
+      <ApiErrorDisplay 
+        title="Coinler yüklenemedi" 
+        message="Coin verileri getirilirken bir hata oluştu. Lütfen daha sonra tekrar deneyin."
+        backLink="/"
+        backText="Ana Sayfaya Dön"
+      />
+    );
+  }
 } 
