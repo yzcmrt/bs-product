@@ -215,8 +215,62 @@ export async function getCoinDetails(coinId: string): Promise<CoinDetail | null>
     const allCoins = await fetchFromApi<TrendingCoin[]>('/coins/trending');
     if (!allCoins || allCoins.length === 0) return null;
     
-    const coinData = allCoins.find(c => c.coin === coinId);
-    if (!coinData) return null;
+    let coinData = allCoins.find(c => c.coin === coinId);
+    
+    // Eğer trending coinlerde bulunamazsa, arama API'si ile dene
+    if (!coinData) {
+      const searchResults = await searchCoin(coinId);
+      if (!searchResults || searchResults.length === 0) {
+        // Eğer arama sonuçları da boşsa null döndür
+        return null;
+      }
+      
+      // Arama sonuçlarından bulunan ilk coin için trending listesine tekrar bak
+      const matchedCoin = allCoins.find(c => c.coin === searchResults[0].coinType);
+      if (!matchedCoin) {
+        // En azından temel bilgileri olan kısmi bir detay döndür
+        return {
+          coin: searchResults[0].coinType,
+          name: searchResults[0].name,
+          symbol: searchResults[0].symbol,
+          price: 0,
+          priceChange24h: 0,
+          marketCap: searchResults[0].mc || 0,
+          volume24h: 0,
+          totalLiquidity: 0,
+          top10HolderPercentage: 0,
+          top20HolderPercentage: 0,
+          isMintable: false,
+          tokensBurned: 0,
+          tokensBurnedPercentage: 0,
+          lpBurnt: false,
+          coinSupply: 0,
+          tokensInLiquidity: 0,
+          percentageTokenSupplyInLiquidity: 0,
+          isCoinHoneyPot: false,
+          suspiciousActivities: [],
+          coinDev: '',
+          coinDevHoldings: 0,
+          coinDevHoldingsPercentage: 0,
+          priceChange5m: 0,
+          priceChange1h: 0,
+          priceChange6h: 0,
+          buyVolume5m: 0,
+          buyVolume1h: 0,
+          buyVolume6h: 0,
+          sellVolume5m: 0,
+          sellVolume1h: 0,
+          sellVolume6h: 0,
+          volume5m: 0,
+          volume1h: 0,
+          volume6h: 0,
+          hasPartialData: true,
+          lastUpdated: new Date()
+        };
+      }
+      // Burada bulunan coini kullan
+      coinData = matchedCoin;
+    }
     
     // API'den gelen verilerle detay nesnesini oluştur
     const detail: CoinDetail = {
@@ -230,14 +284,14 @@ export async function getCoinDetails(coinId: string): Promise<CoinDetail | null>
       totalLiquidity: typeof coinData.totalLiquidityUsd === 'string' ? parseFloat(coinData.totalLiquidityUsd) : (coinData.totalLiquidityUsd || 0),
       top10HolderPercentage: typeof coinData.top10HolderPercentage === 'string' ? parseFloat(coinData.top10HolderPercentage) : (coinData.top10HolderPercentage || 0),
       top20HolderPercentage: typeof coinData.top20HolderPercentage === 'string' ? parseFloat(coinData.top20HolderPercentage) : (coinData.top20HolderPercentage || 0),
-      isMintable: coinData.isMintable === 'true' || !!coinData.isMintable,
+      isMintable: typeof coinData.isMintable === 'string' ? coinData.isMintable === 'true' : !!coinData.isMintable,
       tokensBurned: typeof coinData.tokensBurned === 'string' ? parseFloat(coinData.tokensBurned) : (coinData.tokensBurned || 0),
       tokensBurnedPercentage: typeof coinData.tokensBurnedPercentage === 'string' ? parseFloat(coinData.tokensBurnedPercentage) : (coinData.tokensBurnedPercentage || 0),
-      lpBurnt: coinData.lpBurnt === 'true' || !!coinData.lpBurnt,
+      lpBurnt: typeof coinData.lpBurnt === 'string' ? coinData.lpBurnt === 'true' : !!coinData.lpBurnt,
       coinSupply: typeof coinData.coinSupply === 'string' ? parseFloat(coinData.coinSupply) : (coinData.coinSupply || 0),
       tokensInLiquidity: typeof coinData.tokensInLiquidity === 'string' ? parseFloat(coinData.tokensInLiquidity) : (coinData.tokensInLiquidity || 0),
       percentageTokenSupplyInLiquidity: typeof coinData.percentageTokenSupplyInLiquidity === 'string' ? parseFloat(coinData.percentageTokenSupplyInLiquidity) : (coinData.percentageTokenSupplyInLiquidity || 0),
-      isCoinHoneyPot: coinData.isCoinHoneyPot === 'true' || !!coinData.isCoinHoneyPot,
+      isCoinHoneyPot: typeof coinData.isCoinHoneyPot === 'string' ? coinData.isCoinHoneyPot === 'true' : !!coinData.isCoinHoneyPot,
       suspiciousActivities: coinData.suspiciousActivities || [],
       coinDev: coinData.coinDev || '',
       coinDevHoldings: typeof coinData.coinDevHoldings === 'string' ? parseFloat(coinData.coinDevHoldings) : (coinData.coinDevHoldings || 0),

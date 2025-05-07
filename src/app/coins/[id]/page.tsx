@@ -20,9 +20,9 @@ export default async function CoinPage({ params }: Props) {
     // Direkt coin ID ile detayları ara
     let data = await getCoinDetails(decodedId);
     
-    // Eğer coin bulunamadıysa, coin adı veya sembolü ile ara
-    if (!data) {
-      // Coin ismiyle aramayı dene
+    // Eğer coin bulunamadıysa ve ID kısa bir string ise, sembol olarak arama yapabiliriz
+    if (!data && decodedId.length < 15 && !decodedId.includes('::')) {
+      // Coin sembolü veya ismi ile arama yapalım
       const searchResults = await searchCoin(decodedId);
       
       // Eğer arama sonucu bulunduysa, ilk sonuç için detayları getir
@@ -35,7 +35,7 @@ export default async function CoinPage({ params }: Props) {
       return (
         <ApiErrorDisplay 
           title="Coin bulunamadı" 
-          message="Aradığınız coin sistemde mevcut değil veya şu an API'den erişilemiyor."
+          message={`'${decodedId}' coini sistemde mevcut değil veya şu an API'den erişilemiyor.`}
           backLink="/coins"
           backText="Tüm Coinlere Dön"
         />
