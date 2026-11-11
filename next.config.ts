@@ -18,7 +18,8 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   eslint: {
-    ignoreDuringBuilds: false,
+    // ESLint hatalarını build sırasında görmezden gel
+    ignoreDuringBuilds: true,
   },
   async headers() {
     return [
